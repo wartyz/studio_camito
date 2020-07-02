@@ -3,7 +3,8 @@ https://www.youtube.com/watch?v=6spBXIRsvto&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZ
 https://www.youtube.com/watch?v=LuQpOBg_ebk&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZbuj&index=2
 https://www.youtube.com/watch?v=MId3KcqcLic&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZbuj&index=3
 https://www.youtube.com/watch?v=UtM7cZAlT3E&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZbuj&index=4
-8:05
+https://www.youtube.com/watch?v=q1lqQR6Ii5c&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZbuj&index=5
+22:42
 */
 
 extern crate sdl2;
@@ -18,6 +19,7 @@ use sdl2::keyboard::Keycode;
 use std::ffi::CString;
 
 use gl_utility::shader::{ShaderManager, Shader};
+use gl_utility::gl_buffer::{GLBuffer, AttributeInfo};
 
 // LLamada de debugging
 extern "system" fn dbg_callback(
@@ -96,43 +98,23 @@ fn main() {
         0.5, -0.5, 0.0,
         -0.5, -0.5, 0.0
     ];
-    // VBO
-    let mut vbo: gl::types::GLuint = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut vbo);  // Creamos VBO
 
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo); // Lo "enchufamos" en ARRAY_BUFFER
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            // tamaño de data tipe en bytes
-            (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
-            vertices.as_ptr() as *const gl::types::GLvoid, // puntero a datos
-            gl::STATIC_DRAW,
-        );
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-    }
 
     let a_position_location = basic_shader.get_attribute_location("a_position");
-    // VAO
-    let mut vao: gl::types::GLuint = 0;
-    unsafe {
-        gl::GenVertexArrays(1, &mut vao);
 
-        gl::BindVertexArray(vao);
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::EnableVertexAttribArray(a_position_location); // atributo a_position en shader basic.vert
-        gl::VertexAttribPointer(
-            a_position_location, // Indice del atributo de vertices (a_position)
-            3, // Número de componentes de cada vértice
-            gl::FLOAT, // Tipo de dato
-            gl::FALSE, // Normalizado
-            // stride (byte offset entre atributos)
-            (3 * std::mem::size_of::<f32>()) as gl::types::GLint,
-            std::ptr::null(),
-        );
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-        gl::BindVertexArray(0);
-    }
+    let mut buffer = GLBuffer::new();
+    buffer.configure(
+        vec![
+            AttributeInfo {
+                location: a_position_location,
+                component_size: 3,
+            }
+        ],
+        false,
+    );
+
+    buffer.set_data(vertices.as_slice());
+    buffer.upload();
 
     // Usar programa shader
     basic_shader.use_shader();
@@ -187,12 +169,7 @@ fn main() {
                 1,
                 colors.as_ptr() as *const gl::types::GLfloat,
             );
-            gl::BindVertexArray(vao);
-            gl::DrawArrays(
-                gl::TRIANGLES, // modo
-                0, // Indice inicial de los arreglos
-                6, // Número de índices
-            )
+            buffer.draw();
         }
         window.gl_swap_window();
     }
