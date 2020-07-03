@@ -4,13 +4,15 @@ https://www.youtube.com/watch?v=LuQpOBg_ebk&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZ
 https://www.youtube.com/watch?v=MId3KcqcLic&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZbuj&index=3
 https://www.youtube.com/watch?v=UtM7cZAlT3E&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZbuj&index=4
 https://www.youtube.com/watch?v=q1lqQR6Ii5c&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZbuj&index=5
-22:42
+https://www.youtube.com/watch?v=ILQlXIN15Tw&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZbuj&index=6
 */
 
 extern crate sdl2;
 extern crate gl;
 
 mod gl_utility;
+mod math;
+mod graphics;
 
 use sdl2::video::GLProfile;
 use sdl2::event::Event;
@@ -20,6 +22,8 @@ use std::ffi::CString;
 
 use gl_utility::shader::{ShaderManager, Shader};
 use gl_utility::gl_buffer::{GLBuffer, AttributeInfo};
+use math::matrix4x4::Matrix4x4;
+use graphics::color::Color;
 
 // LLamada de debugging
 extern "system" fn dbg_callback(
@@ -45,6 +49,9 @@ extern "system" fn dbg_callback(
 
 fn main() {
     println!("Hello, world!");
+
+    let width = 800;
+    let height = 600;
 
     // Inicializamos ventana
     let sdl_context = sdl2::init().unwrap();
@@ -79,6 +86,8 @@ fn main() {
     println!("Pixel format en el contexto de la ventana GL {:?}", window.window_pixel_format());
     println!("OpenGL Profile {:?} - OpenGL version {:?}", gl_attr.context_profile(), gl_attr.context_version());
 
+    let projection = Matrix4x4::orthographics(0.0, width as f32, 0.0, height as f32, -100.0, 100.0);
+
     let mut shader_manager = ShaderManager::init();
     //let mut shader_manager2 = ShaderManager::init();
 
@@ -91,16 +100,19 @@ fn main() {
 
     let vertices: Vec<f32> = vec![
         //x    y    z
-        -0.5, -0.5, 0.0,
-        -0.5, 0.5, 0.0,
-        0.5, 0.5, 0.0,
-        0.5, 0.5, 0.0,
-        0.5, -0.5, 0.0,
-        -0.5, -0.5, 0.0
+        10.0, 10.0, 0.0,
+        10.0, 60.0, 0.0,
+        60.0, 60.0, 0.0,
+        60.0, 60.0, 0.0,
+        60.0, 10.0, 0.0,
+        10.0, 10.0, 0.0
     ];
 
 
+    let u_projection_location = basic_shader.get_uniform_location("u_projection");
     let a_position_location = basic_shader.get_attribute_location("a_position");
+    let u_color_position = basic_shader.get_uniform_location("u_color");   // uniform position
+    // (u_color)
 
     let mut buffer = GLBuffer::new();
     buffer.configure(
@@ -126,6 +138,9 @@ fn main() {
     window.gl_swap_window();
 
     let mut event_pump = sdl_context.event_pump().unwrap();
+
+    //let color = Color::new(255, 255, 0, 255);
+    let color = Color::blue();
 
     'main_loop: loop {
         for event in event_pump.poll_iter() {
@@ -162,13 +177,23 @@ fn main() {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
             // Dibujar triángulo
-            let colors: Vec<f32> = vec![1.0, 0.5, 0.5, 1.0];
 
-            gl::Uniform4fv(
-                basic_shader.get_uniform_location("u_color"),   // uniform position (u_color)
-                1,
-                colors.as_ptr() as *const gl::types::GLfloat,
+
+            // Enviamos a OpenGL uniforms
+            gl::Uniform4f(
+                u_color_position,
+                color.r,
+                color.g,
+                color.b,
+                color.a,
             );
+            gl::UniformMatrix4fv(
+                u_projection_location,
+                1,
+                gl::FALSE,
+                projection.data.as_ptr(),
+            );
+
             buffer.draw();
         }
         window.gl_swap_window();
