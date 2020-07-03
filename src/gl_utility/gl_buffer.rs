@@ -8,13 +8,13 @@ pub struct GLBuffer {
     type_size: usize,
 
     element_size: i32,
+    data_len: usize,
     stride: i32,
 
     vao: u32,
     vbo: u32,
 
-    data: Vec<f32>,
-
+    //data: Vec<f32>,
 }
 
 impl Drop for GLBuffer {
@@ -32,13 +32,13 @@ impl GLBuffer {
             type_size: std::mem::size_of::<f32>(),
 
             element_size: 0,
+            data_len: 0,
             stride: 0,
 
             vao: 0,
             vbo: 0,
 
-            data: Vec::new(),
-
+            //data: Vec::new(),
         };
 
         unsafe {
@@ -80,31 +80,17 @@ impl GLBuffer {
         }
     }
 
-    pub fn set_data(&mut self, data: &[f32]) {
-        self.clear_data();
-        self.push_back_data(data);
-    }
-
-    pub fn clear_data(&mut self) {
-        self.data.clear();
-    }
-
-    // Rellena self.data con datos enviados añadiendolos al final
-    pub fn push_back_data(&mut self, data: &[f32]) {
-        for i in 0..data.len() {
-            self.data.push((data[i]));
-        }
-    }
 
     // Introduce los datos de vértice en OpenGL
-    pub fn upload(&self) {
+    pub fn upload(&mut self, data: &[f32]) {
+        self.data_len = data.len();
         unsafe {
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo); // Lo "enchufamos" en ARRAY_BUFFER
             gl::BufferData(
                 gl::ARRAY_BUFFER,
                 // tamaño de data tipe en bytes
-                (self.data.len() * self.type_size) as gl::types::GLsizeiptr,
-                self.data.as_ptr() as *const gl::types::GLvoid, // puntero a datos
+                (self.data_len * self.type_size) as gl::types::GLsizeiptr,
+                data.as_ptr() as *const gl::types::GLvoid, // puntero a datos
                 gl::STATIC_DRAW,
             );
             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
@@ -117,7 +103,7 @@ impl GLBuffer {
             gl::DrawArrays(
                 gl::TRIANGLES, // modo
                 0, // Indice inicial de los arreglos
-                self.data.len() as i32 / self.element_size, // Número de índices
+                self.data_len as i32 / self.element_size, // Número de índices
             );
         }
     }
