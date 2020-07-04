@@ -3,6 +3,7 @@ use crate::gl_utility::shader::Shader;
 use crate::graphics::color::Color;
 use crate::graphics::vertex::Vertex;
 use crate::math::vector3::Vector3;
+use crate::math::matrix4x4::Matrix4x4;
 
 pub struct Sprite<'a> {
     pub name: String,
@@ -14,6 +15,7 @@ pub struct Sprite<'a> {
 
     color: Color,
     u_color_position: i32,
+    u_model_location: i32,
 
     buffer: GLBuffer,
     vertices: [Vertex; 6],
@@ -22,17 +24,25 @@ pub struct Sprite<'a> {
 }
 
 impl<'a> Sprite<'a> {
-    pub fn new(name: &str, shader: &'a Shader, width: f32, height: f32) -> Sprite<'a> {
+    pub fn new(name: &str, shader: &'a Shader, width: Option<f32>, height: Option<f32>) ->
+    Sprite<'a> {
         Sprite {
             name: String::from(name),
 
-            width: width,
-            height: height,
+            width: match width {
+                Some(w) => w,
+                _ => 10.0, // Valor por defecto
+            },
+            height: match height {
+                Some(h) => h,
+                _ => 10.0,
+            },
 
             origin: Vector3::zero(),
 
             color: Color::red(),
             u_color_position: shader.get_uniform_location("u_color"),   // uniform position
+            u_model_location: shader.get_uniform_location("u_model"), // uniform matriz transf
 
             buffer: GLBuffer::new(),
 
@@ -80,11 +90,17 @@ impl<'a> Sprite<'a> {
         );
     }
 
-    pub fn draw(&self) {
+    pub fn draw(&self, model: &Matrix4x4) {
         let u_color_position = self.shader.get_uniform_location("u_color");   // uniform position
 
         unsafe {
             // Enviamos a OpenGL uniforms
+            gl::UniformMatrix4fv( // Matriz transformacion (u_model)
+                                  self.u_model_location,
+                                  1,
+                                  gl::FALSE,
+                                  model.data.as_ptr(),
+            );
             gl::Uniform4f(
                 self.u_color_position,
                 self.color.r,

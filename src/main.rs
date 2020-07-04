@@ -6,7 +6,7 @@ https://www.youtube.com/watch?v=UtM7cZAlT3E&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZ
 https://www.youtube.com/watch?v=q1lqQR6Ii5c&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZbuj&index=5
 https://www.youtube.com/watch?v=ILQlXIN15Tw&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZbuj&index=6
 https://www.youtube.com/watch?v=Vpt9461DiXQ&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZbuj&index=7
-50:51
+https://www.youtube.com/watch?v=27VrlPfHdqM&list=PL-88NuvRRCqAPrkxlIH3bFdNiKTYhZbuj&index=8
 */
 
 extern crate sdl2;
@@ -27,6 +27,7 @@ use gl_utility::gl_buffer::{GLBuffer, AttributeInfo};
 use math::matrix4x4::Matrix4x4;
 use graphics::color::Color;
 use graphics::sprite::Sprite;
+use math::transform::Transform;
 
 // LLamada de debugging
 extern "system" fn dbg_callback(
@@ -103,8 +104,17 @@ fn main() {
 
     let u_projection_location = basic_shader.get_uniform_location("u_projection");
 
-    let mut sprite = Sprite::new("test", basic_shader, 100.0, 50.0);
+    let mut sprite = Sprite::new("test", basic_shader, Some(100.0), Some(50.0));
     sprite.load();
+
+    // Creamos la matriz de transformación
+    let mut transform = Transform::new();
+    transform.position.x = 150.0;
+    transform.position.y = 150.0;
+
+    transform.rotation.z = 10.0;
+
+    transform.scale.x = 3.3;
 
     // Usar programa shader
     basic_shader.use_shader();
@@ -159,8 +169,8 @@ fn main() {
                 gl::FALSE,
                 projection.data.as_ptr(),
             );
-
-            sprite.draw();
+            // Pasamos la matriz de transformación
+            sprite.draw(&transform.get_transformation_matrix());
         }
         window.gl_swap_window();
     }
